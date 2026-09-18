@@ -4,4 +4,4 @@ google-auth
 google-auth-oauthlib
 db-dtypes
 pandas
-pyarrow
+pyarrownumpy

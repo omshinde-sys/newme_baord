@@ -5,6 +5,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from google.cloud import bigquery
+from google.oauth2 import service_account
 
 
 # ==========================================================
@@ -1014,42 +1015,28 @@ def render_product_table(
 # LOAD DATA FROM BIGQUERY
 # ==========================================================
 
-# PROJECT_ID = "newme-in"
-# DASHBOARD_TABLE = "newme-in.en_meta.dashboard_table"
+PROJECT_ID = "newme-in"
+DASHBOARD_TABLE = "newme-in.en_meta.dashboard_table"
 
 
-# @st.cache_data(ttl=900)
-# def load_data():
-
-#     client = bigquery.Client(
-#         project=PROJECT_ID
-#     )
-
-#     query = f"""
-#     SELECT *
-#     FROM `{DASHBOARD_TABLE}`
-#     """
-
-#     df = (
-#         client
-#         .query(query)
-#         .to_dataframe()
-#     )
-
-# ==========================================================
-# LOAD DATA FROM CSV
-# ==========================================================
-
-CSV_FILE = "dashboard_data.csv"
-
-
-@st.cache_data(ttl=900)
+@st.cache_data(ttl=900, show_spinner="Loading dashboard data...")
 def load_data():
 
-    df = pd.read_csv(
-        CSV_FILE,
-        low_memory=False
+    credentials = service_account.Credentials.from_service_account_info(
+        dict(st.secrets["gcp_service_account"])
     )
+
+    client = bigquery.Client(
+        project=PROJECT_ID,
+        credentials=credentials,
+    )
+
+    query = f"""
+    SELECT *
+    FROM `{DASHBOARD_TABLE}`
+    """
+
+    df = client.query(query).to_dataframe()
 
     # ======================================================
     # NORMALIZE COLUMN NAMES
@@ -1060,11 +1047,7 @@ def load_data():
         .astype(str)
         .str.strip()
         .str.lower()
-        .str.replace(
-            " ",
-            "_",
-            regex=False,
-        )
+        .str.replace(" ", "_", regex=False)
     )
 
     # ======================================================
@@ -1073,25 +1056,13 @@ def load_data():
 
     rename_map = {}
 
-    if (
-        "spend" in df.columns
-        and
-        "spends" not in df.columns
-    ):
+    if "spend" in df.columns and "spends" not in df.columns:
         rename_map["spend"] = "spends"
 
-    if (
-        "adset_id" in df.columns
-        and
-        "parent_meta_asset_id" not in df.columns
-    ):
+    if "adset_id" in df.columns and "parent_meta_asset_id" not in df.columns:
         rename_map["adset_id"] = "parent_meta_asset_id"
 
-    if (
-        "ad_id" in df.columns
-        and
-        "meta_asset_id" not in df.columns
-    ):
+    if "ad_id" in df.columns and "meta_asset_id" not in df.columns:
         rename_map["ad_id"] = "meta_asset_id"
 
     if rename_map:
@@ -1130,7 +1101,7 @@ def load_data():
         )
 
     # ======================================================
-    # NUMERIC
+    # NUMERIC COLUMNS
     # ======================================================
 
     numeric_columns = [
@@ -1144,6 +1115,7 @@ def load_data():
         "link_clicks",
         "landing_page_view",
         "final_price",
+        "final_cpo_index",
         "sale_price",
         "price",
     ]
@@ -1159,189 +1131,19 @@ def load_data():
             )
 
     return df
-    # ======================================================
-    # NORMALIZE COLUMN NAMES
-    # ======================================================
-
-    df.columns = (
-        df.columns
-        .astype(str)
-        .str.strip()
-        .str.lower()
-        .str.replace(
-            " ",
-            "_",
-            regex=False,
-        )
-    )
-
-
-    # ======================================================
-    # ALIASES
-    # ======================================================
-
-    rename_map = {}
-
-
-    if (
-        "spend" in df.columns
-        and
-        "spends" not in df.columns
-    ):
-
-        rename_map[
-            "spend"
-        ] = "spends"
-
-
-    if (
-        "adset_id" in df.columns
-        and
-        "parent_meta_asset_id"
-        not in df.columns
-    ):
-
-        rename_map[
-            "adset_id"
-        ] = (
-            "parent_meta_asset_id"
-        )
-
-
-    if (
-        "ad_id" in df.columns
-        and
-        "meta_asset_id"
-        not in df.columns
-    ):
-
-        rename_map[
-            "ad_id"
-        ] = (
-            "meta_asset_id"
-        )
-
-
-    if rename_map:
-
-        df = df.rename(
-            columns=rename_map
-        )
-
-
-    # ======================================================
-    # STRING
-    # ======================================================
-
-    string_columns = [
-        "campaign_id",
-        "campaign_name",
-        "meta_asset_id",
-        "ad_name",
-        "parent_meta_asset_id",
-        "adset_name",
-        "product_id",
-        "product_type",
-        "brand",
-        "image_link",
-    ]
-
-
-    for column in string_columns:
-
-        if column in df.columns:
-
-            df[
-                column
-            ] = (
-                df[
-                    column
-                ]
-                .astype(
-                    "string"
-                )
-            )
-
-
-    # ======================================================
-    # DATE
-    # ======================================================
-
-    if (
-        "performance_date"
-        in df.columns
-    ):
-
-        df[
-            "performance_date"
-        ] = pd.to_datetime(
-            df[
-                "performance_date"
-            ],
-            errors="coerce",
-        )
-
-
-    # ======================================================
-    # NUMERIC
-    # ======================================================
-
-    numeric_columns = [
-        "impressions",
-        "clicks",
-        "spends",
-        "purchase",
-        "purchase_value",
-        "view_content",
-        "add_to_cart",
-        "link_clicks",
-        "landing_page_view",
-        "final_price",
-        "final_cpo_index",
-    ]
-
-
-    for column in numeric_columns:
-
-        if column in df.columns:
-
-            df[
-                column
-            ] = (
-                pd.to_numeric(
-                    df[
-                        column
-                    ],
-                    errors="coerce",
-                )
-                .fillna(0)
-            )
-
-
-    return df
 
 
 try:
-
     df = load_data()
 
 except Exception as error:
-
-    st.error(
-        "Unable to load dashboard data from BigQuery."
-    )
-
+    st.error("Unable to load dashboard data from BigQuery.")
     st.exception(error)
-
     st.stop()
 
 
 if df.empty:
-
-    st.error(
-        "dashboard_table currently has no data."
-    )
-
+    st.error("dashboard_table currently has no data.")
     st.stop()
 
 

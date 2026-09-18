@@ -1,0 +1,14 @@
+.streamlit/secrets.toml
+
+*.json
+
+__pycache__/
+.env
+.venv/
+venv/
+
+.DS_Storedashboard_data.csv
+refresh_data.py
+.github/workflows/refresh_dashboard.yml
+
+dashboard_data.csv

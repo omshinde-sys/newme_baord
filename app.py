@@ -1032,11 +1032,10 @@ def load_data():
     )
 
     query = f"""
-    SELECT *
+SELECT *
 FROM `{DASHBOARD_TABLE}`
-WHERE performance_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 60 DAY)
-    
-    """
+WHERE performance_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+"""
 
     df = client.query(query).to_dataframe()
 

@@ -6,3 +6,12 @@ db-dtypes
 pandas
 pyarrow
 numpy
+streamlit
+google-cloud-bigquery
+google-cloud-bigquery-storage
+google-auth
+google-auth-oauthlib
+db-dtypes
+pandas
+pyarrow
+numpy
